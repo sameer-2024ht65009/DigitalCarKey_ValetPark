@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Owner Digital Wallet</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { background-color: #f2f2f7; font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .phone-mock { width: 375px; height: 750px; background: #000; border-radius: 50px; padding: 12px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); position: relative; }
+        .screen { background: white; width: 100%; height: 100%; border-radius: 40px; overflow: hidden; position: relative; }
+        
+        /* Wallet UI */
+        .header { padding: 40px 20px 10px; font-size: 32px; font-weight: bold; }
+        .wallet-card { background: linear-gradient(135deg, #ff5f6d, #ffc371); margin: 15px; padding: 25px; border-radius: 24px; color: white; height: 180px; position: relative; box-shadow: 0 10px 20px rgba(255, 95, 109, 0.3); }
+        .card-label { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; }
+        .card-model { font-size: 24px; font-weight: bold; margin-top: 5px; }
+        
+        /* Share Button */
+        .btn-share { position: absolute; bottom: 40px; left: 20px; right: 20px; background: #007aff; color: white; border: none; padding: 18px; border-radius: 16px; font-size: 18px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.2s; }
+        .btn-share:active { transform: scale(0.98); }
+
+        /* QR Modal (Slide Up) */
+        #qr-modal { display: none; position: absolute; bottom: 0; left: 0; right: 0; height: 75%; background: white; border-top-left-radius: 32px; border-top-right-radius: 32px; box-shadow: 0 -10px 40px rgba(0,0,0,0.2); z-index: 10; padding: 40px 20px; text-align: center; animation: slideUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        
+        .close-btn { position: absolute; top: 20px; right: 20px; background: #eee; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #666; font-weight: bold; }
+        #qrcode { display: inline-block; margin-top: 30px; padding: 15px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .pin-hint { margin-top: 25px; font-size: 18px; color: #333; }
+        .pin-hint strong { font-size: 24px; color: #007aff; }
+    </style>
+</head>
+<body>
+
+<div class="phone-mock">
+    <div class="screen">
+        <div class="header">Wallet</div>
+        
+        <div class="wallet-card">
+            <div class="card-label">Digital Car Key</div>
+            <div class="card-model">Mercedes-Benz S-Class</div>
+            <div style="position: absolute; bottom: 25px; font-size: 14px;">Active • 2026 Model</div>
+        </div>
+
+        <button class="btn-share" onclick="showShareSheet()">
+            <span>📤</span> Share Valet Access
+        </button>
+
+        <div id="qr-modal">
+            <div class="close-btn" onclick="closeModal()">✕</div>
+            <h2 style="margin: 0;">Valet Handover</h2>
+            <p style="color: #666; margin-top: 8px;">Scan this code with the Valet's device</p>
+            
+            <div id="qrcode"></div>
+            
+            <div class="pin-hint">
+                Pairing Password<br>
+                <strong>0900</strong>
+            </div>
+            <p style="font-size: 12px; color: #999; margin-top: 20px;">Session expires in 5:00</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    const qrDiv = document.getElementById("qrcode");
+    let qrcodeInstance = null;
+
+    function showShareSheet() {
+        qrDiv.innerHTML = ""; // Clear old QR
+        
+        // 1. Get your Laptop's IP (REPLACE THIS with your actual IPv4)
+        const laptopIP = "192.168.56.1"; 
+        
+        // 2. Create the unique session link
+        const sessionID = Date.now();
+        const valetUrl = `http://${laptopIP}:5500/index.html?session=${sessionID}`;
+        
+        // 3. Generate the QR
+        qrcodeInstance = new QRCode(qrDiv, {
+            text: valetUrl,
+            width: 200,
+            height: 200,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+
+        document.getElementById("qr-modal").style.display = "block";
+    }
+
+    function closeModal() {
+        document.getElementById("qr-modal").style.display = "none";
+    }
+</script>
+
+</body>
+</html>

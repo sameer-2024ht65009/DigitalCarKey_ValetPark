@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Valet Key PWA</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="auth-screen" class="screen">
+        <h2>Security Verification</h2>
+        <p>Enter Pairing Password</p>
+        <div class="pin-display">
+            <div class="dot" id="dot-1"></div>
+            <div class="dot" id="dot-2"></div>
+            <div class="dot" id="dot-3"></div>
+            <div class="dot" id="dot-4"></div>
+        </div>
+        <div class="numpad" id="numpad">
+            </div>
+    </div>
+
+    <div id="loading-screen" class="screen hidden">
+        <div class="loader"></div>
+        <h2>Connecting to Vehicle</h2>
+        <p>Establishing secure BLE link...</p>
+    </div>
+
+    <div id="dashboard-screen" class="screen hidden">
+        <div class="status-bar">📡 BLE Connected - Within Range</div>
+        <div class="key-card">Valet Key Active</div>
+        <div class="grid">
+            <button class="tile" onclick="triggerRelay('Lock')">🔒 Lock</button>
+            <button class="tile" onclick="triggerRelay('Unlock')">🔓 Unlock</button>
+            <button class="tile" onclick="triggerRelay('Engine')">⚡ Start Engine</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
