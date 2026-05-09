@@ -102,8 +102,16 @@ async function triggerRelay(command) {
     }
 
     try {
-        // Send '1' for Unlock/Start, '0' for Lock
-        const signal = (command === 'unlock' || command === 'start') ? "1" : "0";
+        let signal = "";
+        // Distinguish between Unlock and Start
+        if (command === 'start') {
+            signal = "S"; 
+        } else if (command === 'unlock') {
+            signal = "1";
+        } else {
+            signal = "0"; // Lock
+        }
+
         const data = new TextEncoder().encode(signal);
         await bleCharacteristic.writeValue(data);
         console.log(`Hardware: ${command} signal sent.`);
