@@ -45,36 +45,56 @@ function updateDots() {
     }
 }
 
-// Updated to include Hardware Handshake
-async function transitionToLoading() {
+// Shows the loading screen and manual connect button
+function transitionToLoading() {
     document.getElementById('auth-screen').classList.add('hidden');
     document.getElementById('loading-screen').classList.remove('hidden');
     
+    // Create the connect button dynamically if it doesn't exist in your HTML
+    if (!document.getElementById('connect-hw-btn')) {
+        const btn = document.createElement('button');
+        btn.id = 'connect-hw-btn';
+        btn.className = 'tile';
+        btn.style.cssText = "background: #4cd964; margin-top: 20px; width: 80%;";
+        btn.innerText = "Connect to Vehicle";
+        btn.onclick = connectToESP32;
+        document.getElementById('loading-screen').appendChild(btn);
+    }
+}
+
+// THE UPDATED CONNECTION LOGIC
+async function connectToESP32() {
+    const btn = document.getElementById('connect-hw-btn');
+    btn.innerText = "Connecting...";
+    
     try {
-        // Step 1: Connect to the Physical ESP32
+        // Step 1: Request Device (User Gesture Requirement)
         const device = await navigator.bluetooth.requestDevice({
             filters: [{ name: 'Mercedes_DCK_Anchor' }],
             optionalServices: [SERVICE_UUID]
         });
+        
+        // Step 2: Connect to GATT Server
         const server = await device.gatt.connect();
+        
+        // Step 3: Wait 500ms for services to stabilize (Critical for ESP32)
+        await new Promise(resolve => setTimeout(resolve, 500));
+
+        // Step 4: Get Service and Characteristic
         const service = await server.getPrimaryService(SERVICE_UUID);
         bleCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
 
-        // Step 2: Show Dashboard once connected
+        // Step 5: Transition to Dashboard
         document.getElementById('loading-screen').classList.add('hidden');
         document.getElementById('dashboard-screen').classList.remove('hidden');
+        
     } catch (error) {
         console.error("BLE Handshake Failed:", error);
-        alert("Vehicle Connection Failed. Ensure ESP32 is powered on.");
-        // Revert to auth screen if hardware is missing
-        document.getElementById('loading-screen').classList.add('hidden');
-        document.getElementById('auth-screen').classList.remove('hidden');
-        enteredPin = "";
-        updateDots();
+        alert("Connection Failed: " + error.message);
+        btn.innerText = "Retry Connection";
     }
 }
 
-// Updated to send Actual Bluetooth Signals
 async function triggerRelay(command) {
     if (!bleCharacteristic) {
         alert("Hardware not connected!");
@@ -82,7 +102,7 @@ async function triggerRelay(command) {
     }
 
     try {
-        // Send '1' for Unlock, '0' for Lock
+        // Send '1' for Unlock/Start, '0' for Lock
         const signal = (command === 'unlock' || command === 'start') ? "1" : "0";
         const data = new TextEncoder().encode(signal);
         await bleCharacteristic.writeValue(data);
