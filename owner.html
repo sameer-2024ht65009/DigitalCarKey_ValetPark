@@ -12,22 +12,26 @@
         
         /* Wallet UI */
         .header { padding: 40px 20px 10px; font-size: 32px; font-weight: bold; }
-        .wallet-card { background: linear-gradient(135deg, #ff5f6d, #ffc371); margin: 15px; padding: 25px; border-radius: 24px; color: white; height: 180px; position: relative; box-shadow: 0 10px 20px rgba(255, 95, 109, 0.3); }
+        .wallet-card { background: linear-gradient(135deg, #ff5f6d, #ffc371); margin: 15px; padding: 25px; border-radius: 24px; color: white; height: 180px; position: relative; box-shadow: 0 10px 20px rgba(255, 95, 109, 0.3); transition: all 0.5s ease; }
         .card-label { font-size: 14px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.9; }
         .card-model { font-size: 24px; font-weight: bold; margin-top: 5px; }
         
+        /* Telemetry Terminal */
+        .terminal { background: #1c1c1e; margin: 15px; padding: 15px; border-radius: 16px; color: #4cd964; font-family: 'Courier New', monospace; font-size: 11px; height: 200px; overflow-y: auto; border: 1px solid #333; line-height: 1.4; }
+        .terminal-header { color: #8e8e93; font-size: 10px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .log-entry { margin-bottom: 4px; border-left: 2px solid #333; padding-left: 8px; }
+        .cmd-in { color: #58a6ff; }
+        .sys-ok { color: #4cd964; }
+
         /* Share Button */
         .btn-share { position: absolute; bottom: 40px; left: 20px; right: 20px; background: #007aff; color: white; border: none; padding: 18px; border-radius: 16px; font-size: 18px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.2s; }
         .btn-share:active { transform: scale(0.98); }
 
-        /* QR Modal (Slide Up) */
+        /* QR Modal */
         #qr-modal { display: none; position: absolute; bottom: 0; left: 0; right: 0; height: 75%; background: white; border-top-left-radius: 32px; border-top-right-radius: 32px; box-shadow: 0 -10px 40px rgba(0,0,0,0.2); z-index: 10; padding: 40px 20px; text-align: center; animation: slideUp 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        
         .close-btn { position: absolute; top: 20px; right: 20px; background: #eee; width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #666; font-weight: bold; }
         #qrcode { display: inline-block; margin-top: 30px; padding: 15px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .pin-hint { margin-top: 25px; font-size: 18px; color: #333; }
-        .pin-hint strong { font-size: 24px; color: #007aff; }
     </style>
 </head>
 <body>
@@ -36,13 +40,20 @@
     <div class="screen">
         <div class="header">Wallet</div>
         
-        <div class="wallet-card">
+        <div id="card-bg" class="wallet-card">
             <div class="card-label">Digital Car Key</div>
             <div class="card-model">Mercedes-Benz S-Class</div>
-            <div style="position: absolute; bottom: 25px; font-size: 14px;">Active • 2026 Model</div>
+            <div id="veh-status" style="position: absolute; bottom: 25px; font-size: 14px; font-weight: bold;">STATUS: STANDBY</div>
         </div>
 
-        <!-- Share button now triggers the Serial Wake Command -->
+        <div class="terminal">
+            <div class="terminal-header">Vehicle Telemetry Log</div>
+            <div id="serial-log">
+                <div class="log-entry">> Initializing system...</div>
+                <div class="log-entry">> Awaiting OOB Handshake...</div>
+            </div>
+        </div>
+
         <button class="btn-share" onclick="showShareSheet()">
             <span>📤</span> Share Valet Access
         </button>
@@ -50,70 +61,76 @@
         <div id="qr-modal">
             <div class="close-btn" onclick="closeModal()">✕</div>
             <h2 style="margin: 0;">Valet Handover</h2>
-            <p style="color: #666; margin-top: 8px;">Scan this code with the Valet's device</p>
-            
             <div id="qrcode"></div>
-            
-            <div class="pin-hint">
-                Pairing Password<br>
-                <strong>0900</strong>
-            </div>
-            <p style="font-size: 12px; color: #999; margin-top: 20px;">Session expires in 5:00</p>
+            <div style="margin-top:25px; font-size:18px;">Password: <strong>0900</strong></div>
         </div>
     </div>
 </div>
 
 <script>
     const qrDiv = document.getElementById("qrcode");
-    let qrcodeInstance = null;
+    const logDiv = document.getElementById("serial-log");
+    const statusText = document.getElementById("veh-status");
+    const cardBg = document.getElementById("card-bg");
+    
     let serialPort = null;
 
-    // This function bridges the Laptop to the ESP32 via USB
+    function addLog(text, className = "") {
+        const entry = document.createElement("div");
+        entry.className = "log-entry " + className;
+        entry.innerText = `> ${new Date().toLocaleTimeString()}: ${text}`;
+        logDiv.appendChild(entry);
+        logDiv.parentElement.scrollTop = logDiv.parentElement.scrollHeight;
+    }
+
+    async function listenToVehicle() {
+        const reader = serialPort.readable.getReader();
+        addLog("Telemetry Link Active.", "sys-ok");
+        
+        try {
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                const msg = new TextDecoder().decode(value).trim();
+                
+                if(msg.includes("UNLOCK")) {
+                    addLog("Command Received: UNLOCK", "cmd-in");
+                    statusText.innerText = "STATUS: UNLOCKED";
+                    cardBg.style.background = "linear-gradient(135deg, #4cd964, #28cd41)";
+                } else if(msg.includes("LOCK")) {
+                    addLog("Command Received: LOCK", "cmd-in");
+                    statusText.innerText = "STATUS: LOCKED";
+                    cardBg.style.background = "linear-gradient(135deg, #ff3b30, #ff2d55)";
+                }
+            }
+        } catch (err) { addLog("Serial Error: " + err.message); }
+    }
+
     async function sendWakeCommand() {
         try {
-            // First-time connection request
             if (!serialPort) {
                 serialPort = await navigator.serial.requestPort();
                 await serialPort.open({ baudRate: 115200 });
+                listenToVehicle(); // Start listening for feedback
             }
-
-            const encoder = new TextEncoder();
             const writer = serialPort.writable.getWriter();
-            
-            // Send 'W' to wake up the BLE Broadcaster on ESP32
-            await writer.write(encoder.encode("W"));
+            await writer.write(new TextEncoder().encode("W"));
             writer.releaseLock();
-            
-            console.log("Hardware Triggered: OOB Wake command 'W' sent.");
-        } catch (err) {
-            console.error("Serial Wake Failed:", err);
-            alert("Please connect the ESP32 to USB and try again.");
-        }
+            addLog("OOB Wake Signal 'W' Broadcasted.");
+        } catch (err) { alert("Connect ESP32 via USB."); }
     }
 
     async function showShareSheet() {
-        // Trigger the physical hardware first
         await sendWakeCommand();
-
         qrDiv.innerHTML = ""; 
-        const valetUrl = "https://sameer-2024ht65009.github.io/DigitalCarKey_ValetPark/index.html";
-        
-        qrcodeInstance = new QRCode(qrDiv, {
-            text: valetUrl,
-            width: 200,
-            height: 200,
-            colorDark : "#000000",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
+        new QRCode(qrDiv, {
+            text: "https://sameer-2024ht65009.github.io/DigitalCarKey_ValetPark/index.html",
+            width: 180, height: 180
         });
-
         document.getElementById("qr-modal").style.display = "block";
     }
 
-    function closeModal() {
-        document.getElementById("qr-modal").style.display = "none";
-    }
+    function closeModal() { document.getElementById("qr-modal").style.display = "none"; }
 </script>
-
 </body>
 </html>
