@@ -101,6 +101,10 @@
                     addLog("Command Received: LOCK", "cmd-in");
                     statusText.innerText = "STATUS: LOCKED";
                     cardBg.style.background = "linear-gradient(135deg, #ff3b30, #ff2d55)";
+                } else if(msg.includes("START")) {
+                    addLog("Command Received: START ENGINE", "cmd-in");
+                    statusText.innerText = "STATUS: IGN ON";
+                    cardBg.style.background = "linear-gradient(135deg, #58a6ff, #007aff)";
                 }
             }
         } catch (err) { addLog("Serial Error: " + err.message); }
