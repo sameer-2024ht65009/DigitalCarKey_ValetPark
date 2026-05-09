@@ -15,7 +15,7 @@ body {
 
 /* PIN Dots */
 .pin-display { display: flex; justify-content: center; gap: 15px; margin: 30px 0; }
-.dot { width: 15px; height: 15px; border: 2px solid #fff; border-radius: 50%; }
+.dot { width: 15px; height: 15px; border: 2px solid #fff; border-radius: 50%; transition: background-color 0.2s; }
 .dot.active { background-color: #fff; }
 
 /* Numpad */
@@ -23,15 +23,23 @@ body {
 .key { 
     width: 70px; height: 70px; border-radius: 50%; background: #1c1c1e; 
     display: flex; justify-content: center; align-items: center; font-size: 24px; cursor: pointer;
+    transition: background 0.1s;
 }
+.key:active { background: #3a3a3c; } /* Visual feedback for touch */
 
 /* Dashboard Tiles */
 .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 20px; }
 .tile { 
     background: #1c1c1e; border: none; color: white; padding: 30px; 
     border-radius: 20px; font-size: 16px; font-weight: bold;
+    cursor: pointer; transition: transform 0.1s;
 }
-.key-card { background: #3498db; padding: 40px; border-radius: 20px; margin: 20px; font-weight: bold; }
+.tile:active { transform: scale(0.95); background: #2c2c2e; }
+
+.key-card { background: #3498db; padding: 40px; border-radius: 20px; margin: 20px; font-weight: bold; box-shadow: 0 10px 20px rgba(52, 152, 219, 0.3); }
+
+/* Status Bar for BLE */
+.status-bar { font-size: 12px; color: #4cd964; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
 
 /* Loader */
 .loader { 

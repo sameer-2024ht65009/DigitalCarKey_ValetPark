@@ -69,14 +69,10 @@
     function showShareSheet() {
         qrDiv.innerHTML = ""; // Clear old QR
         
-        // 1. Get your Laptop's IP (REPLACE THIS with your actual IPv4)
-        const laptopIP = "192.168.56.1"; 
-        
-        // 2. Create the unique session link
-        const sessionID = Date.now();
+        // Use your live GitHub URL for the OOB (Out-of-Band) Handshake
         const valetUrl = "https://sameer-2024ht65009.github.io/DigitalCarKey_ValetPark/index.html";
         
-        // 3. Generate the QR
+        // Generate the QR pointing to your secure Valet Key PWA
         qrcodeInstance = new QRCode(qrDiv, {
             text: valetUrl,
             width: 200,
@@ -87,6 +83,7 @@
         });
 
         document.getElementById("qr-modal").style.display = "block";
+        console.log("Valet OOB Protocol: QR Broadcast initiated.");
     }
 
     function closeModal() {

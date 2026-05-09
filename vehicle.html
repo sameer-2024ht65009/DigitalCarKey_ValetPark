@@ -1,0 +1,98 @@
+<!-- vehicle.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mercedes-Benz | Digital Twin Dashboard</title>
+    <style>
+        body { margin: 0; background: #0a0a0a; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; }
+        .car-container { position: relative; width: 600px; transition: all 0.5s ease; }
+        #car-image { width: 100%; filter: drop-shadow(0 0 20px #005cff55); transition: 0.5s; }
+        
+        /* Status Labels */
+        .dashboard-header { position: absolute; top: -100px; text-align: center; width: 100%; }
+        .status-badge { padding: 10px 20px; border-radius: 20px; font-weight: bold; text-transform: uppercase; border: 1px solid #333; margin: 0 10px; display: inline-block; transition: 0.3s; }
+        
+        /* Dynamic States */
+        .locked { border-color: #ff3b30; color: #ff3b30; box-shadow: 0 0 10px #ff3b3033; }
+        .unlocked { border-color: #4cd964; color: #4cd964; box-shadow: 0 0 10px #4cd96433; }
+        .ign-on { background: #007aff; color: white; border-color: #007aff; box-shadow: 0 0 20px #007aff; }
+
+        /* Visual Feast Elements */
+        .glow { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 100%; height: 100%; background: radial-gradient(circle, #007aff22 0%, transparent 70%); opacity: 0; transition: 0.5s; }
+        .engine-active .glow { opacity: 1; }
+        .engine-active #car-image { transform: scale(1.02); }
+
+        /* Hardware Link Button */
+        .serial-btn { margin-top: 20px; padding: 12px 24px; background: transparent; color: #007aff; border: 1px solid #007aff; border-radius: 8px; cursor: pointer; font-size: 14px; transition: 0.3s; }
+        .serial-btn:hover { background: #007aff; color: white; }
+    </style>
+</head>
+<body>
+    <div class="dashboard-header">
+        <h1>MERCEDES-BENZ DIGITAL TWIN</h1>
+        <div id="lock-status" class="status-badge locked">SYSTEM LOCKED</div>
+        <div id="ign-status" class="status-badge">IGNITION OFF</div>
+    </div>
+
+    <div class="car-container" id="visual-frame">
+        <div class="glow"></div>
+        <img id="car-image" src="https://images.remote.com/car-silhouette-placeholder.png" alt="Mercedes S-Class">
+    </div>
+
+    <!-- Button to initialize the HIL (Hardware-in-the-Loop) connection -->
+    <button class="serial-btn" id="connect-btn" onclick="connectHardware()">SYNC VEHICLE HARDWARE (ESP32)</button>
+
+    <script>
+        async function connectHardware() {
+            try {
+                // Request port for ESP32
+                const port = await navigator.serial.requestPort();
+                await port.open({ baudRate: 115200 });
+                
+                const btn = document.getElementById('connect-btn');
+                btn.innerText = "V-LINK ACTIVE";
+                btn.style.color = "#4cd964";
+                btn.style.borderColor = "#4cd964";
+
+                const decoder = new TextDecoderStream();
+                port.readable.pipeTo(decoder.writable);
+                const inputStream = decoder.readable;
+                const reader = inputStream.getReader();
+
+                // Listen for serial signals from ESP32
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    
+                    if (value.includes("STATE:UNLOCKED")) {
+                        updateVehicleState('unlock');
+                    } else if (value.includes("STATE:LOCKED")) {
+                        location.reload(); // Quick reset to locked state
+                    }
+                }
+            } catch (err) {
+                console.error("Hardware Sync Failed:", err);
+            }
+        }
+
+        function updateVehicleState(command) {
+            const lockLabel = document.getElementById('lock-status');
+            const ignLabel = document.getElementById('ign-status');
+            const frame = document.getElementById('visual-frame');
+
+            if (command === 'unlock') {
+                lockLabel.innerText = "SYSTEM UNLOCKED";
+                lockLabel.className = "status-badge unlocked";
+                // Auto-trigger ignition for the visual effect
+                setTimeout(() => updateVehicleState('start'), 1000);
+            } else if (command === 'start') {
+                ignLabel.innerText = "IGNITION ON";
+                ignLabel.className = "status-badge ign-on";
+                frame.classList.add('engine-active');
+            }
+        }
+    </script>
+</body>
+</html>
