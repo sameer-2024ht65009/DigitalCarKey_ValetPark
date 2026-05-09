@@ -42,6 +42,7 @@
             <div style="position: absolute; bottom: 25px; font-size: 14px;">Active • 2026 Model</div>
         </div>
 
+        <!-- Share button now triggers the Serial Wake Command -->
         <button class="btn-share" onclick="showShareSheet()">
             <span>📤</span> Share Valet Access
         </button>
@@ -65,14 +66,38 @@
 <script>
     const qrDiv = document.getElementById("qrcode");
     let qrcodeInstance = null;
+    let serialPort = null;
 
-    function showShareSheet() {
-        qrDiv.innerHTML = ""; // Clear old QR
-        
-        // Use your live GitHub URL for the OOB (Out-of-Band) Handshake
+    // This function bridges the Laptop to the ESP32 via USB
+    async function sendWakeCommand() {
+        try {
+            // First-time connection request
+            if (!serialPort) {
+                serialPort = await navigator.serial.requestPort();
+                await serialPort.open({ baudRate: 115200 });
+            }
+
+            const encoder = new TextEncoder();
+            const writer = serialPort.writable.getWriter();
+            
+            // Send 'W' to wake up the BLE Broadcaster on ESP32
+            await writer.write(encoder.encode("W"));
+            writer.releaseLock();
+            
+            console.log("Hardware Triggered: OOB Wake command 'W' sent.");
+        } catch (err) {
+            console.error("Serial Wake Failed:", err);
+            alert("Please connect the ESP32 to USB and try again.");
+        }
+    }
+
+    async function showShareSheet() {
+        // Trigger the physical hardware first
+        await sendWakeCommand();
+
+        qrDiv.innerHTML = ""; 
         const valetUrl = "https://sameer-2024ht65009.github.io/DigitalCarKey_ValetPark/index.html";
         
-        // Generate the QR pointing to your secure Valet Key PWA
         qrcodeInstance = new QRCode(qrDiv, {
             text: valetUrl,
             width: 200,
@@ -83,7 +108,6 @@
         });
 
         document.getElementById("qr-modal").style.display = "block";
-        console.log("Valet OOB Protocol: QR Broadcast initiated.");
     }
 
     function closeModal() {
